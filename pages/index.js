@@ -10,6 +10,19 @@ min-height: 100vh;
 
 const ImageContainer = styled.div`
 width: 80%;
+display: flex;
+justify-content: center;
+align-items: center;
+position: relative;
+
+.drop-zone__canvas {
+position:absolute;
+}
+
+.drop-zone__text{
+padding: 20rem;
+border: black 1.5px dashed;
+}
 `;
 
 function useStateRef(initialValue) {
@@ -42,26 +55,12 @@ export default function Home() {
     applyCanvasFilters();
   }, [filterString]);
 
-  function resizeCanvas() {
-    if (imageRef.current.src) {
-      adjustImageSize();
-      applyCanvasFilters();
-    }
-  }
-
-  function readDroppedFile({ dataTransfer: { items: [file] } }) {
-    const reader = new FileReader();
-    reader.onload = () => imageRef.current.src = reader.result;
-    reader.readAsDataURL(file.getAsFile());
-    // updateDownloadName(file.getAsFile());
-  }
-
   function adjustImageSize() {
     const computedValues = getComputedStyle(dropZoneRef.current);
     const computedWidth = parseFloat(computedValues.getPropertyValue('width').replace('px', ''));
     const computedHeight = parseFloat(computedValues.getPropertyValue('height').replace('px', ''));
-    let scaleValue;
     const canvas = canvasRef.current;
+    let scaleValue;
 
     canvas.width = imageRef.current.width;
     canvas.height = imageRef.current.height;
@@ -88,6 +87,20 @@ export default function Home() {
       canvas.style.width = `${newWidth}px`;
       canvas.style.height = `${newHeight}px`;
     }
+  }
+
+  function resizeCanvas() {
+    if (imageRef.current.src) {
+      adjustImageSize();
+      applyCanvasFilters();
+    }
+  }
+
+  function readDroppedFile({ dataTransfer: { items: [file] } }) {
+    const reader = new FileReader();
+    reader.onload = () => imageRef.current.src = reader.result;
+    reader.readAsDataURL(file.getAsFile());
+    // updateDownloadName(file.getAsFile());
   }
 
   useEffect(() => {
@@ -129,7 +142,7 @@ export default function Home() {
       <Slider setFilterString={setFilterString} />
       <ImageContainer ref={dropZoneRef}>
         <canvas className="drop-zone__canvas" width="0" height="0" ref={canvasRef} />
-        <span className="drop-zone__text">Drop Your Image Here</span>
+        {(imageRef.current && !imageRef.current.src) && <span className="drop-zone__text">Drop Your Image Here</span> }
       </ImageContainer>
     </Container>
   );
