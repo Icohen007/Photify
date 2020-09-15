@@ -25,6 +25,41 @@ border: black 1.5px dashed;
 }
 `;
 
+function adjustImageSize(dropZoneElement, ImageElement, canvasElement) {
+  const dropZoneValues = getComputedStyle(dropZoneElement);
+  const dropZoneWidth = parseFloat(dropZoneValues.getPropertyValue('width').replace('px', ''));
+  const dropZoneHeight = parseFloat(dropZoneValues.getPropertyValue('height').replace('px', ''));
+  const canvas = canvasElement;
+  let scaleValue;
+
+  canvas.width = ImageElement.width;
+  canvas.height = ImageElement.height;
+
+  canvas.style.width = `${canvas.width}px`;
+  canvas.style.height = `${canvas.height}px`;
+
+  let canvasWidth = canvas.width;
+  let canvasHeight = canvas.height;
+
+  if (canvasWidth > dropZoneWidth) {
+    scaleValue = dropZoneWidth / canvasWidth;
+    const newWidth = canvasWidth * scaleValue;
+    const newHeight = canvasHeight * scaleValue;
+    canvas.style.width = `${newWidth}px`;
+    canvas.style.height = `${newHeight}px`;
+    canvasWidth = newWidth;
+    canvasHeight = newHeight;
+  }
+
+  if (canvasHeight > dropZoneHeight) {
+    scaleValue = dropZoneHeight / canvasHeight;
+    const newWidth = canvasWidth * scaleValue;
+    const newHeight = canvasHeight * scaleValue;
+    canvas.style.width = `${newWidth}px`;
+    canvas.style.height = `${newHeight}px`;
+  }
+}
+
 function useStateRef(initialValue) {
   const [value, setValue] = useState(initialValue);
   const ref = useRef(value);
@@ -40,11 +75,10 @@ export default function Home() {
   const dropZoneRef = useRef(null);
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
-
   const [filterString, setFilterString, filterStringRef] = useStateRef('');
 
   function applyCanvasFilters() {
-    if (!imageRef.current) return;
+    if (!imageRef.current || !imageRef.current.src) return;
     const ctx = canvasRef.current.getContext('2d');
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     ctx.filter = filterStringRef.current;
@@ -52,61 +86,16 @@ export default function Home() {
   }
 
   useEffect(() => {
-    applyCanvasFilters();
-  }, [filterString]);
-
-  function adjustImageSize() {
-    const computedValues = getComputedStyle(dropZoneRef.current);
-    const computedWidth = parseFloat(computedValues.getPropertyValue('width').replace('px', ''));
-    const computedHeight = parseFloat(computedValues.getPropertyValue('height').replace('px', ''));
-    const canvas = canvasRef.current;
-    let scaleValue;
-
-    canvas.width = imageRef.current.width;
-    canvas.height = imageRef.current.height;
-    canvas.style.width = `${canvas.width}px`;
-    canvas.style.height = `${canvas.height}px`;
-
-    let canvasWidth = parseFloat(canvas.style.width.replace('px', ''));
-    let canvasHeight = parseFloat(canvas.style.height.replace('px', ''));
-
-    if (canvasWidth > computedWidth) {
-      scaleValue = computedWidth / canvasWidth;
-      const newWidth = canvasWidth * scaleValue;
-      const newHeight = canvasHeight * scaleValue;
-      canvas.style.width = `${newWidth}px`;
-      canvas.style.height = `${newHeight}px`;
-      canvasWidth = parseFloat(canvas.style.width.replace('px', ''));
-      canvasHeight = parseFloat(canvas.style.height.replace('px', ''));
-    }
-
-    if (canvasHeight > computedHeight) {
-      scaleValue = computedHeight / canvasHeight;
-      const newWidth = canvasWidth * scaleValue;
-      const newHeight = canvasHeight * scaleValue;
-      canvas.style.width = `${newWidth}px`;
-      canvas.style.height = `${newHeight}px`;
-    }
-  }
-
-  function resizeCanvas() {
-    if (imageRef.current.src) {
-      adjustImageSize();
-      applyCanvasFilters();
-    }
-  }
-
-  function readDroppedFile({ dataTransfer: { items: [file] } }) {
-    const reader = new FileReader();
-    reader.onload = () => imageRef.current.src = reader.result;
-    reader.readAsDataURL(file.getAsFile());
-    // updateDownloadName(file.getAsFile());
-  }
-
-  useEffect(() => {
     const dropZone = dropZoneRef.current;
+
+    const handleDrop = (e) => {
+      e.preventDefault();
+      const { dataTransfer: { items: [file] } } = e;
+      const reader = new FileReader();
+      reader.onload = () => { imageRef.current.src = reader.result; };
+      reader.readAsDataURL(file.getAsFile());
+    };
     const handleDragOver = (e) => e.preventDefault();
-    const handleDrop = (e) => { e.preventDefault(); readDroppedFile(e); };
     const handleDragIn = (e) => e.preventDefault();
     const handleDragOut = (e) => e.preventDefault();
 
@@ -124,18 +113,22 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const resizeCanvas = () => {
+      adjustImageSize(dropZoneRef.current, imageRef.current, canvasRef.current);
+      applyCanvasFilters();
+    };
+
+    imageRef.current = new Image();
+    imageRef.current.onload = resizeCanvas;
     const canvasResizer = new ResizeObserver(resizeCanvas);
     canvasResizer.observe(dropZoneRef.current);
-    return () => canvasResizer.unobserve(dropZoneRef.current);
+
+    return () => canvasResizer.disconnect();
   }, []);
 
   useEffect(() => {
-    imageRef.current = new Image();
-    imageRef.current.onload = () => {
-      adjustImageSize();
-      applyCanvasFilters(imageRef.current);
-    };
-  }, []);
+    applyCanvasFilters();
+  }, [filterString]);
 
   return (
     <Container>
