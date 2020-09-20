@@ -8,7 +8,7 @@ width: 100%;
 min-height: 100vh;
 `;
 
-const ImageContainer = styled.div`
+const  ImageContainer = styled.div`
 width: 80%;
 display: flex;
 justify-content: center;
@@ -85,32 +85,13 @@ export default function Home() {
     ctx.drawImage(imageRef.current, 0, 0);
   }
 
-  useEffect(() => {
-    const dropZone = dropZoneRef.current;
-
-    const handleDrop = (e) => {
-      e.preventDefault();
-      const { dataTransfer: { items: [file] } } = e;
-      const reader = new FileReader();
-      reader.onload = () => { imageRef.current.src = reader.result; };
-      reader.readAsDataURL(file.getAsFile());
-    };
-    const handleDragOver = (e) => e.preventDefault();
-    const handleDragIn = (e) => e.preventDefault();
-    const handleDragOut = (e) => e.preventDefault();
-
-    dropZone.addEventListener('dragenter', handleDragIn);
-    dropZone.addEventListener('dragleave', handleDragOut);
-    dropZone.addEventListener('dragover', handleDragOver);
-    dropZone.addEventListener('drop', handleDrop);
-
-    return () => {
-      dropZone.removeEventListener('dragenter', handleDragIn);
-      dropZone.removeEventListener('dragleave', handleDragOut);
-      dropZone.removeEventListener('dragover', handleDragOver);
-      dropZone.removeEventListener('drop', handleDrop);
-    };
-  }, []);
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const { dataTransfer: { items: [file] } } = e;
+    const reader = new FileReader();
+    reader.onload = () => { imageRef.current.src = reader.result; };
+    reader.readAsDataURL(file.getAsFile());
+  }
 
   useEffect(() => {
     const resizeCanvas = () => {
@@ -133,7 +114,13 @@ export default function Home() {
   return (
     <Container>
       <Slider setFilterString={setFilterString} />
-      <ImageContainer ref={dropZoneRef}>
+      <ImageContainer
+          ref={dropZoneRef}
+          onDrop={handleDrop}
+          onDragEnter={(e) => e.preventDefault()}
+          onDragLeave={(e) => e.preventDefault()}
+          onDragOver={(e) => e.preventDefault()}
+      >
         <canvas className="drop-zone__canvas" width="0" height="0" ref={canvasRef} />
         {(imageRef.current && !imageRef.current.src) && <span className="drop-zone__text">Drop Your Image Here</span> }
       </ImageContainer>
