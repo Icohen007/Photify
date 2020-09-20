@@ -8,7 +8,7 @@ width: 100%;
 min-height: 100vh;
 `;
 
-const  ImageContainer = styled.div`
+const ImageContainer = styled.div`
 width: 80%;
 display: flex;
 justify-content: center;
@@ -25,42 +25,25 @@ border: black 1.5px dashed;
 }
 `;
 
-function adjustImageSize(dropZoneElement, ImageElement, canvasElement) {
+const newValuesRatioKeeper = (innerSide1, innerSide2, outerSide) => {
+  const scaleValue = Math.min(outerSide / innerSide1, 1);
+  return [innerSide1 * scaleValue, innerSide2 * scaleValue];
+};
+
+const adjustImageSize = (dropZoneElement, canvasElement) => {
   const dropZoneValues = getComputedStyle(dropZoneElement);
   const dropZoneWidth = parseFloat(dropZoneValues.getPropertyValue('width').replace('px', ''));
   const dropZoneHeight = parseFloat(dropZoneValues.getPropertyValue('height').replace('px', ''));
   const canvas = canvasElement;
-  let scaleValue;
 
-  canvas.width = ImageElement.width;
-  canvas.height = ImageElement.height;
+  const [width, height] = newValuesRatioKeeper(canvas.width, canvas.height, dropZoneWidth);
+  const [newHeight, newWidth] = newValuesRatioKeeper(height, width, dropZoneHeight);
 
-  canvas.style.width = `${canvas.width}px`;
-  canvas.style.height = `${canvas.height}px`;
+  canvas.style.width = `${newWidth}px`;
+  canvas.style.height = `${newHeight}px`;
+};
 
-  let canvasWidth = canvas.width;
-  let canvasHeight = canvas.height;
-
-  if (canvasWidth > dropZoneWidth) {
-    scaleValue = dropZoneWidth / canvasWidth;
-    const newWidth = canvasWidth * scaleValue;
-    const newHeight = canvasHeight * scaleValue;
-    canvas.style.width = `${newWidth}px`;
-    canvas.style.height = `${newHeight}px`;
-    canvasWidth = newWidth;
-    canvasHeight = newHeight;
-  }
-
-  if (canvasHeight > dropZoneHeight) {
-    scaleValue = dropZoneHeight / canvasHeight;
-    const newWidth = canvasWidth * scaleValue;
-    const newHeight = canvasHeight * scaleValue;
-    canvas.style.width = `${newWidth}px`;
-    canvas.style.height = `${newHeight}px`;
-  }
-}
-
-function useStateRef(initialValue) {
+const useStateRef = (initialValue) => {
   const [value, setValue] = useState(initialValue);
   const ref = useRef(value);
 
@@ -69,33 +52,42 @@ function useStateRef(initialValue) {
   }, [value]);
 
   return [value, setValue, ref];
-}
+};
 
-export default function Home() {
+const Home = () => {
   const dropZoneRef = useRef(null);
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const [filterString, setFilterString, filterStringRef] = useStateRef('');
 
-  function applyCanvasFilters() {
+  const applyCanvasFilters = () => {
     if (!imageRef.current || !imageRef.current.src) return;
     const ctx = canvasRef.current.getContext('2d');
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     ctx.filter = filterStringRef.current;
     ctx.drawImage(imageRef.current, 0, 0);
-  }
+  };
 
   const handleDrop = (e) => {
     e.preventDefault();
     const { dataTransfer: { items: [file] } } = e;
     const reader = new FileReader();
-    reader.onload = () => { imageRef.current.src = reader.result; };
+
+    reader.onload = () => {
+      imageRef.current.src = reader.result;
+      const canvas = canvasRef.current;
+      canvas.width = imageRef.current.width;
+      canvas.height = imageRef.current.height;
+      canvas.style.width = `${canvas.width}px`;
+      canvas.style.height = `${canvas.height}px`;
+    };
+
     reader.readAsDataURL(file.getAsFile());
-  }
+  };
 
   useEffect(() => {
     const resizeCanvas = () => {
-      adjustImageSize(dropZoneRef.current, imageRef.current, canvasRef.current);
+      adjustImageSize(dropZoneRef.current, canvasRef.current);
       applyCanvasFilters();
     };
 
@@ -115,15 +107,17 @@ export default function Home() {
     <Container>
       <Slider setFilterString={setFilterString} />
       <ImageContainer
-          ref={dropZoneRef}
-          onDrop={handleDrop}
-          onDragEnter={(e) => e.preventDefault()}
-          onDragLeave={(e) => e.preventDefault()}
-          onDragOver={(e) => e.preventDefault()}
+        ref={dropZoneRef}
+        onDrop={handleDrop}
+        onDragEnter={(e) => e.preventDefault()}
+        onDragLeave={(e) => e.preventDefault()}
+        onDragOver={(e) => e.preventDefault()}
       >
         <canvas className="drop-zone__canvas" width="0" height="0" ref={canvasRef} />
         {(imageRef.current && !imageRef.current.src) && <span className="drop-zone__text">Drop Your Image Here</span> }
       </ImageContainer>
     </Container>
   );
-}
+};
+
+export default Home;
