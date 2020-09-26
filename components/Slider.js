@@ -3,8 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Filter from './Filter';
 
 const StyledSlider = styled.div`
-height: 100%;
-width: 200rem;
+width: 100%;
 display: flex;
 flex-direction: column;
 justify-content: center;
