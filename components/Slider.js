@@ -104,13 +104,13 @@ const filters = [
   },
 ];
 
-const filterValuesObject = filters.reduce((acc, cur) => {
+const defaultFilterValues = filters.reduce((acc, cur) => {
   acc[cur.filterType] = cur.range.defaultValue;
   return acc;
 }, {});
 
-const Slider = ({ setFilterString }) => {
-  const [filterValues, setFilterValues] = useState(filterValuesObject);
+const Slider = ({ setFilterString, disabledInputs }) => {
+  const [filterValues, setFilterValues] = useState(defaultFilterValues);
   console.log(filterValues);
 
   useEffect(() => {
@@ -131,8 +131,10 @@ const Slider = ({ setFilterString }) => {
           key={filterObj.filterType}
           value={filterValues[filterObj.filterType]}
           onChange={handleFilterChange}
+          disabled={disabledInputs}
         />
       ))}
+      <button onClick={() => setFilterValues(defaultFilterValues)}>reset</button>
     </StyledSlider>
   );
 };

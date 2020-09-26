@@ -16,7 +16,7 @@ align-items: center;
 position: relative;
 
 .drop-zone__canvas {
-position:absolute;
+position:absolute; 
 }
 
 .drop-zone__text{
@@ -54,11 +54,19 @@ const useStateRef = (initialValue) => {
   return [value, setValue, ref];
 };
 
+function initCanvasSize(canvasElement, imageElement) {
+  canvasElement.width = imageElement.width;
+  canvasElement.height = imageElement.height;
+  canvasElement.style.width = `${canvasElement.width}px`;
+  canvasElement.style.height = `${canvasElement.height}px`;
+}
+
 const Home = () => {
   const dropZoneRef = useRef(null);
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const [filterString, setFilterString, filterStringRef] = useStateRef('');
+  const [disabledInputs, setDisabledInputs] = useState(true);
 
   const applyCanvasFilters = () => {
     if (!imageRef.current || !imageRef.current.src) return;
@@ -68,6 +76,16 @@ const Home = () => {
     ctx.drawImage(imageRef.current, 0, 0);
   };
 
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    canvas.width = 0;
+    canvas.height = 0;
+    canvas.style.width = '0px';
+    canvas.style.height = '0px';
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
   const handleDrop = (e) => {
     e.preventDefault();
     const { dataTransfer: { items: [file] } } = e;
@@ -75,11 +93,6 @@ const Home = () => {
 
     reader.onload = () => {
       imageRef.current.src = reader.result;
-      const canvas = canvasRef.current;
-      canvas.width = imageRef.current.width;
-      canvas.height = imageRef.current.height;
-      canvas.style.width = `${canvas.width}px`;
-      canvas.style.height = `${canvas.height}px`;
     };
 
     reader.readAsDataURL(file.getAsFile());
@@ -92,7 +105,12 @@ const Home = () => {
     };
 
     imageRef.current = new Image();
-    imageRef.current.onload = resizeCanvas;
+    imageRef.current.onload = () => {
+      initCanvasSize(canvasRef.current, imageRef.current);
+
+      resizeCanvas();
+      setDisabledInputs(false);
+    };
     const canvasResizer = new ResizeObserver(resizeCanvas);
     canvasResizer.observe(dropZoneRef.current);
 
@@ -105,7 +123,7 @@ const Home = () => {
 
   return (
     <Container>
-      <Slider setFilterString={setFilterString} />
+      <Slider setFilterString={setFilterString} disabledInputs={disabledInputs} />
       <ImageContainer
         ref={dropZoneRef}
         onDrop={handleDrop}
