@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 import { useCallback, useEffect, useState } from 'react';
 import Filter from './Filter';
+import { defaultFilterValues, filters } from '../utils/filters';
 
 const StyledSlider = styled.div`
 width: 100%;
@@ -10,107 +11,8 @@ justify-content: center;
 align-items: center;
 `;
 
-const filters = [
-  {
-    description: 'Blur',
-    filterType: 'blur',
-    range: {
-      min: 0,
-      max: 100,
-      step: 1,
-      defaultValue: 0,
-    },
-  },
-  {
-    description: 'Grayscale',
-    filterType: 'grayscale',
-    range: {
-      min: 0,
-      max: 1,
-      step: 0.01,
-      defaultValue: 0,
-    },
-  },
-  {
-    description: 'Invert',
-    filterType: 'invert',
-    range: {
-      min: 0,
-      max: 1,
-      step: 0.01,
-      defaultValue: 0,
-    },
-  },
-  {
-    description: 'Sepia',
-    filterType: 'sepia',
-    range: {
-      min: 0,
-      max: 1,
-      step: 0.01,
-      defaultValue: 0,
-    },
-  },
-  {
-    description: 'Hue-rotate',
-    filterType: 'hue-rotate',
-    range: {
-      min: 0,
-      max: 360,
-      step: 1,
-      defaultValue: 0,
-    },
-  },
-  {
-    description: 'Opacity',
-    filterType: 'opacity',
-    range: {
-      min: 0,
-      max: 1,
-      step: 0.01,
-      defaultValue: 1,
-    },
-  },
-  {
-    description: 'Brightness',
-    filterType: 'brightness',
-    range: {
-      min: 0,
-      max: 2,
-      step: 0.01,
-      defaultValue: 1,
-    },
-  },
-  {
-    description: 'Contrast',
-    filterType: 'contrast',
-    range: {
-      min: 0,
-      max: 2,
-      step: 0.01,
-      defaultValue: 1,
-    },
-  },
-  {
-    description: 'Saturation',
-    filterType: 'saturate',
-    range: {
-      min: 0,
-      max: 2,
-      step: 0.01,
-      defaultValue: 1,
-    },
-  },
-];
-
-const defaultFilterValues = filters.reduce((acc, cur) => {
-  acc[cur.filterType] = cur.range.defaultValue;
-  return acc;
-}, {});
-
-const Slider = ({ setFilterString, disabledInputs }) => {
+const Slider = ({ setFilterString, disabledInputs, clearCanvas }) => {
   const [filterValues, setFilterValues] = useState(defaultFilterValues);
-  console.log(filterValues);
 
   useEffect(() => {
     const filterString = `blur(${filterValues.blur}px) brightness(${filterValues.brightness}) contrast(${filterValues.contrast}) grayscale(${filterValues.grayscale}) invert(${filterValues.invert}) opacity(${filterValues.opacity}) saturate(${filterValues.saturate}) sepia(${filterValues.sepia}) hue-rotate(${filterValues['hue-rotate']}deg)`;
@@ -120,6 +22,13 @@ const Slider = ({ setFilterString, disabledInputs }) => {
   const handleFilterChange = useCallback(({ target }) => {
     setFilterValues((prevFilterValues) => ({ ...prevFilterValues, [target.id]: +target.value }));
   }, [filterValues]);
+
+  const handleReset = () => setFilterValues(defaultFilterValues);
+
+  const handleClearButton = () => {
+    clearCanvas();
+    handleReset();
+  };
 
   return (
     <StyledSlider>
@@ -133,7 +42,8 @@ const Slider = ({ setFilterString, disabledInputs }) => {
           disabled={disabledInputs}
         />
       ))}
-      <button onClick={() => setFilterValues(defaultFilterValues)}>reset</button>
+      <button onClick={handleReset}>reset</button>
+      <button onClick={handleClearButton}>clear</button>
     </StyledSlider>
   );
 };

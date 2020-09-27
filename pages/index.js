@@ -5,19 +5,22 @@ import Slider from '../components/Slider';
 const Container = styled.div`
 display: flex;
 width: 100%;
+height: 100%;
 min-height: 100vh;
+justify-content: space-evenly;
+align-items: center;
+  @media only screen and (max-width: 768px) {
+  flex-direction: column-reverse;
+  }
 `;
 
 const ImageContainer = styled.div`
 width: 100%;
+height: 100%;
 display: flex;
 justify-content: center;
 align-items: center;
 position: relative;
-
-.drop-zone__canvas {
-position:absolute; 
-}
 
 .drop-zone__text{
 padding: 20rem;
@@ -27,32 +30,53 @@ border: black 1.5px dashed;
 
 const Sidebar = styled.section`
 height: 100%;
-width: 200rem;
+width: 270rem;
 display: flex;
 flex-direction: column;
 align-items: center;
+padding: 20rem;
+justify-content: center;
 `;
 
-const buttonColor = '#4141ff';
+const downloadButtonColor = '#4141ff';
 
 const DownloadButton = styled.a`
-background-color: white;
-padding: 10rem;
-border: 2px solid ${buttonColor};
-outline: none;
-color: ${buttonColor};
-border-radius: 5rem;
-margin-top: 20rem;
-cursor: pointer;
-font-weight: bold;
-font-size: 14rem;
-transition: all ease-in-out 0.2s;
-
+  background-color: white;
+  padding: 10rem;
+  border: 2px solid ${downloadButtonColor};
+  outline: none;
+  color: ${downloadButtonColor};
+  border-radius: 5rem;
+  margin-top: 20rem;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14rem;
+  transition: all ease-in-out 0.2s;
+  
 &:hover {
-background-color: ${buttonColor};
+background-color: ${downloadButtonColor};
 color: white;
 }
+`;
 
+const selectButtonColor = '#030303';
+
+const SelectFileButton = styled.button`
+  background-color: white;
+  padding: 0.2em 0.2em;
+  border: 2px solid ${selectButtonColor};
+  outline: none;
+  color: ${selectButtonColor};
+  border-radius: 5rem;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14rem;
+  transition: all ease-in-out 0.2s;
+  &:hover {
+    background-color: ${selectButtonColor};
+    color: white;
+  }
+  
 `;
 
 const newValuesRatioKeeper = (innerSide1, innerSide2, outerSide) => {
@@ -96,6 +120,8 @@ const Home = () => {
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const downloadButtonRef = useRef(null);
+  const hiddenFileInputRef = useRef(null);
+  const selectFileButtonRef = useRef(null);
   const [filterString, setFilterString, filterStringRef] = useStateRef('');
   const [disabledInputs, setDisabledInputs] = useState(true);
 
@@ -115,6 +141,24 @@ const Home = () => {
     canvas.style.height = '0px';
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    downloadButtonRef.current.removeAttribute('href');
+    imageRef.current.removeAttribute('src');
+    setDisabledInputs(true);
+  };
+
+  const updateDownloadName = ({ name }) => {
+    let newName;
+    const splittedName = name.split('.');
+
+    if (splittedName.length === 1) {
+      newName = `${splittedName[0]}-edited.png`;
+    } else {
+      const ext = splittedName.pop();
+      const fileNameWithoutExt = splittedName.join('.');
+      newName = `${fileNameWithoutExt}-edited.${ext}`;
+    }
+
+    downloadButtonRef.current.download = newName;
   };
 
   const handleDrop = (e) => {
@@ -126,7 +170,9 @@ const Home = () => {
       imageRef.current.src = reader.result;
     };
 
-    reader.readAsDataURL(file.getAsFile());
+    const fileData = file.getAsFile();
+    reader.readAsDataURL(fileData);
+    updateDownloadName(fileData);
   };
 
   useEffect(() => {
@@ -152,17 +198,37 @@ const Home = () => {
     applyCanvasFilters();
   }, [filterString]);
 
-  const handleClick = () => {
-    if (imageRef.current.src) {
+  const handleDownload = () => {
+    if (imageRef.current.src || !disabledInputs) {
       downloadButtonRef.current.href = canvasRef.current.toDataURL();
     }
+  };
+
+  const handleSelectFile = ({ target }) => {
+    const fileUploaded = target.files[0];
+    if (!fileUploaded) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      imageRef.current.src = reader.result;
+      hiddenFileInputRef.current.value = '';
+    };
+
+    updateDownloadName(fileUploaded);
+    reader.readAsDataURL(fileUploaded);
+  };
+
+  const handleChooseFileClick = () => {
+    hiddenFileInputRef.current.click();
   };
 
   return (
     <Container>
       <Sidebar>
-        <Slider setFilterString={setFilterString} disabledInputs={disabledInputs} />
-        <DownloadButton ref={downloadButtonRef} download onClick={handleClick}>Download Image</DownloadButton>
+        <Slider setFilterString={setFilterString} disabledInputs={disabledInputs} clearCanvas={clearCanvas} />
+        <DownloadButton disabledInputs ref={downloadButtonRef} download onClick={handleDownload}>Download Image</DownloadButton>
       </Sidebar>
       <ImageContainer
         ref={dropZoneRef}
@@ -171,8 +237,23 @@ const Home = () => {
         onDragLeave={(e) => e.preventDefault()}
         onDragOver={(e) => e.preventDefault()}
       >
-        <canvas className="drop-zone__canvas" width="0" height="0" ref={canvasRef} />
-        {(imageRef.current && !imageRef.current.src) && <span className="drop-zone__text">Drop Your Image Here</span> }
+        <canvas width="0" height="0" ref={canvasRef} />
+        {(imageRef.current && !imageRef.current.src) && (
+        <span className="drop-zone__text">
+          Drop Your Image Here or
+          {' '}
+          <SelectFileButton ref={selectFileButtonRef} onClick={handleChooseFileClick}>
+            Upload a file
+          </SelectFileButton>
+        </span>
+        ) }
+
+        <input
+          type="file"
+          ref={hiddenFileInputRef}
+          onInput={handleSelectFile}
+          style={{ display: 'none' }}
+        />
       </ImageContainer>
     </Container>
   );
