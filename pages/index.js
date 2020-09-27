@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Slider from '../components/Slider';
 
 const Container = styled.div`
@@ -84,6 +84,11 @@ const newValuesRatioKeeper = (innerSide1, innerSide2, outerSide) => {
   return [innerSide1 * scaleValue, innerSide2 * scaleValue];
 };
 
+function initCanvasSize(canvasElement, imageElement) {
+  canvasElement.width = imageElement.width;
+  canvasElement.height = imageElement.height;
+}
+
 const adjustImageSize = (dropZoneElement, canvasElement) => {
   const dropZoneValues = getComputedStyle(dropZoneElement);
   const dropZoneWidth = parseFloat(dropZoneValues.getPropertyValue('width').replace('px', ''));
@@ -108,12 +113,23 @@ const useStateRef = (initialValue) => {
   return [value, setValue, ref];
 };
 
-function initCanvasSize(canvasElement, imageElement) {
-  canvasElement.width = imageElement.width;
-  canvasElement.height = imageElement.height;
-  canvasElement.style.width = `${canvasElement.width}px`;
-  canvasElement.style.height = `${canvasElement.height}px`;
-}
+const DropOrSelectFile = React.forwardRef(({ handleChooseFileClick, handleSelectFile }, ref) => (
+  <div>
+    <span className="drop-zone__text">
+      Drop Your Image Here or
+      {' '}
+      <SelectFileButton onClick={handleChooseFileClick}>
+        Upload a file
+      </SelectFileButton>
+    </span>
+    <input
+      type="file"
+      ref={ref}
+      onInput={handleSelectFile}
+      style={{ display: 'none' }}
+    />
+  </div>
+));
 
 const Home = () => {
   const dropZoneRef = useRef(null);
@@ -121,7 +137,6 @@ const Home = () => {
   const imageRef = useRef(null);
   const downloadButtonRef = useRef(null);
   const hiddenFileInputRef = useRef(null);
-  const selectFileButtonRef = useRef(null);
   const [filterString, setFilterString, filterStringRef] = useStateRef('');
   const [disabledInputs, setDisabledInputs] = useState(true);
 
@@ -184,7 +199,6 @@ const Home = () => {
     imageRef.current = new Image();
     imageRef.current.onload = () => {
       initCanvasSize(canvasRef.current, imageRef.current);
-
       resizeCanvas();
       setDisabledInputs(false);
     };
@@ -227,8 +241,19 @@ const Home = () => {
   return (
     <Container>
       <Sidebar>
-        <Slider setFilterString={setFilterString} disabledInputs={disabledInputs} clearCanvas={clearCanvas} />
-        <DownloadButton disabledInputs ref={downloadButtonRef} download onClick={handleDownload}>Download Image</DownloadButton>
+        <Slider
+          setFilterString={setFilterString}
+          disabledInputs={disabledInputs}
+          clearCanvas={clearCanvas}
+        />
+        <DownloadButton
+          disabledInputs
+          ref={downloadButtonRef}
+          download
+          onClick={handleDownload}
+        >
+          Download Image
+        </DownloadButton>
       </Sidebar>
       <ImageContainer
         ref={dropZoneRef}
@@ -238,22 +263,14 @@ const Home = () => {
         onDragOver={(e) => e.preventDefault()}
       >
         <canvas width="0" height="0" ref={canvasRef} />
-        {(imageRef.current && !imageRef.current.src) && (
-        <span className="drop-zone__text">
-          Drop Your Image Here or
-          {' '}
-          <SelectFileButton ref={selectFileButtonRef} onClick={handleChooseFileClick}>
-            Upload a file
-          </SelectFileButton>
-        </span>
-        ) }
-
-        <input
-          type="file"
+        {(imageRef.current && !imageRef.current.src)
+        && (
+        <DropOrSelectFile
+          handleChooseFileClick={handleChooseFileClick}
+          handleSelectFile={handleSelectFile}
           ref={hiddenFileInputRef}
-          onInput={handleSelectFile}
-          style={{ display: 'none' }}
         />
+        )}
       </ImageContainer>
     </Container>
   );
